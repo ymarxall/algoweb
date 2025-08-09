@@ -1,12 +1,15 @@
 // app/menu/page.js
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Footer from '../components/Footer'
 
 export default function MenuPage() {
+  const router = useRouter()
   const [activeCategory, setActiveCategory] = useState('Drink')
   const [searchQuery, setSearchQuery] = useState('')
   const [cart, setCart] = useState([])
+  const [selectedItem, setSelectedItem] = useState(null)
 
   const menuItems = [
     {
@@ -109,7 +112,35 @@ export default function MenuPage() {
     setCart([])
   }
 
-  // Component untuk menampilkan gambar dengan fallback (diperbaiki scaling)
+  const openItemDetail = (item) => {
+    setSelectedItem(item)
+  }
+
+  const closeItemDetail = () => {
+    setSelectedItem(null)
+  }
+
+  const handleCheckout = () => {
+    if (cart.length === 0) return
+    
+    // Calculate total
+    const total = cart.reduce((sum, cartItem) => {
+      const price = parseInt(cartItem.price.replace('Rp', '').replace('.', ''))
+      return sum + (price * cartItem.quantity)
+    }, 0)
+    
+    // Store cart data in localStorage for the purchase page
+    const checkoutData = {
+      items: cart,
+      total: total,
+      timestamp: new Date().toISOString()
+    }
+    
+    localStorage.setItem('checkoutData', JSON.stringify(checkoutData))
+    router.push('/beli')
+  }
+
+  // Component untuk menampilkan gambar dengan fallback
   const ProductImage = ({ src, alt, className }) => {
     const [imageError, setImageError] = useState(false)
     
@@ -139,8 +170,8 @@ export default function MenuPage() {
     )
   }
 
-  // Cart Component (diperbaiki dari app/keranjang/page.js agar lebih compact dan terintegrasi)
-  const Cart = ({ cart, onAddItem, onRemoveItem, onClearCart }) => {
+  // Cart Component
+  const Cart = ({ cart, onAddItem, onRemoveItem, onClearCart, onCheckout }) => {
     const parsePrice = (priceStr) => {
       return parseInt(priceStr.replace('Rp', '').replace('.', ''), 10)
     }
@@ -179,8 +210,8 @@ export default function MenuPage() {
               </div>
             </div>
             
-            {/* Cart Items - Reduced Height */}
-            <div className="space-y-2 max-h-24 overflow-y-auto pr-2">
+            {/* Cart Items - Reduced Height with thin scrollbar */}
+            <div className="space-y-2 max-h-24 overflow-y-auto pr-2 thin-scrollbar">
               {cart.map((cartItem) => (
                 <div key={cartItem.id} className="flex justify-between items-center bg-orange-50 rounded-xl p-2.5">
                   <div className="flex-1 min-w-0">
@@ -222,7 +253,10 @@ export default function MenuPage() {
             </div>
             
             {/* Checkout Button - Smaller */}
-            <button className="w-full mt-3 bg-gradient-to-r from-orange-400 to-red-400 text-white font-bold py-2.5 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 text-sm">
+            <button 
+              onClick={onCheckout}
+              className="w-full mt-3 bg-gradient-to-r from-orange-400 to-red-400 text-white font-bold py-2.5 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 text-sm"
+            >
               Checkout Sekarang
             </button>
           </div>
@@ -233,6 +267,31 @@ export default function MenuPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 relative">
+      {/* Custom scrollbar styles - Thin scrollbar */}
+      <style jsx global>{`
+        .thin-scrollbar::-webkit-scrollbar {
+          width: 3px;
+          height: 3px;
+        }
+        .thin-scrollbar::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.05);
+          border-radius: 10px;
+        }
+        .thin-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(251, 146, 60, 0.4);
+          border-radius: 10px;
+        }
+        .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(251, 146, 60, 0.6);
+        }
+        
+        /* For Firefox */
+        .thin-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(251, 146, 60, 0.4) rgba(0, 0, 0, 0.05);
+        }
+      `}</style>
+
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-lg border-b border-orange-100 sticky top-0 z-10">
         <div className="px-4 py-4">
@@ -256,7 +315,7 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Promo Banner (diperbaiki decorations) */}
+      {/* Promo Banner */}
       <div className="px-4 mb-6">
         <div className="bg-gradient-to-r from-orange-400 to-red-400 rounded-3xl p-6 relative overflow-hidden shadow-lg">
           <div className="absolute top-4 left-4">
@@ -275,9 +334,9 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Category Tabs (diperbaiki scrolling) */}
+      {/* Category Tabs with thin scrollbar */}
       <div className="px-4 mb-8">
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+        <div className="flex gap-3 overflow-x-auto thin-scrollbar pb-2">
           {categories.map((category) => (
             <button
               key={category}
@@ -294,12 +353,15 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Menu Items Grid (diperbaiki grid dan hover) */}
+      {/* Menu Items Grid */}
       <div className="px-4 pb-32">
         <div className="grid grid-cols-2 gap-4">
           {filteredItems.map((item) => (
             <div key={item.id} className="group">
-              <div className="bg-white/90 backdrop-blur-sm rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-white/50">
+              <div 
+                className="bg-white/90 backdrop-blur-sm rounded-3xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-white/50 cursor-pointer"
+                onClick={() => openItemDetail(item)}
+              >
                 {/* Image Container */}
                 <div className="relative h-40 bg-gradient-to-br from-orange-100 to-red-100">
                   <ProductImage 
@@ -308,8 +370,11 @@ export default function MenuPage() {
                     className="rounded-t-3xl h-full"
                   />
                   
-                  {/* Favorite Button (diperbaiki hover) */}
-                  <button className="absolute top-3 right-3 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white transition-colors hover:scale-110">
+                  {/* Favorite Button */}
+                  <button 
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute top-3 right-3 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white transition-colors hover:scale-110"
+                  >
                     <svg className="w-4 h-4 text-red-400 hover:text-red-500 transition-colors" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                     </svg>
@@ -342,7 +407,10 @@ export default function MenuPage() {
                       </span>
                     </div>
                     <button 
-                      onClick={() => addToCart(item)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        addToCart(item)
+                      }}
                       className="w-10 h-10 bg-gradient-to-r from-orange-400 to-red-400 rounded-2xl flex items-center justify-center shadow-md hover:shadow-lg transform hover:scale-110 transition-all duration-200 active:scale-95"
                     >
                       <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -357,16 +425,87 @@ export default function MenuPage() {
         </div>
       </div>
 
+      {/* Item Detail Modal/Popup */}
+      {selectedItem && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm relative animate-scale-up shadow-2xl">
+            {/* Close Button */}
+            <button 
+              onClick={closeItemDetail}
+              className="absolute top-4 right-4 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors z-10"
+            >
+              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Product Image */}
+            <div className="w-48 h-48 mx-auto mb-6 rounded-3xl overflow-hidden shadow-lg">
+              <ProductImage 
+                src={selectedItem.image} 
+                alt={selectedItem.name}
+                className="w-full h-full"
+              />
+            </div>
+
+            {/* Product Info */}
+            <div className="text-center">
+              {selectedItem.isPromo && (
+                <div className="flex justify-center mb-2">
+                  <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                    PROMO
+                  </span>
+                </div>
+              )}
+              
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">{selectedItem.name}</h2>
+              <p className="text-gray-600 text-sm mb-4 px-4">{selectedItem.description}</p>
+              <p className="text-3xl font-bold text-orange-600 mb-6">{selectedItem.price}</p>
+              
+              {/* Add to Cart Button */}
+              <button 
+                onClick={() => {
+                  addToCart(selectedItem)
+                  closeItemDetail()
+                }}
+                className="w-full bg-gradient-to-r from-orange-400 to-red-400 text-white py-4 px-6 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 active:scale-95"
+              >
+                Tambah ke Keranjang
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Cart Component */}
       <Cart 
         cart={cart}
         onAddItem={addToCart}
         onRemoveItem={removeFromCart}
         onClearCart={clearCart}
+        onCheckout={handleCheckout}
       />
 
       {/* Footer Component */}
       <Footer activeTab="menu" leftMargin={16} rightMargin={16} />
+
+      {/* Add animations */}
+      <style jsx>{`
+        @keyframes scale-up {
+          from {
+            transform: scale(0.9);
+            opacity: 0;
+          }
+          to {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+        
+        .animate-scale-up {
+          animation: scale-up 0.3s ease-out;
+        }
+      `}</style>
     </div>
   )
 }
