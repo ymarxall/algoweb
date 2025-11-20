@@ -14,6 +14,9 @@ return new class extends Migration
     Schema::create('tables', function (Blueprint $table) {
         $table->id();
         $table->string('table_number')->unique();
+        $table->string('name'); // Nama meja, misal "Meja 1"
+        $table->enum('status', ['available', 'occupied'])->default('available');
+        $table->string('qr_code')->nullable(); // Path atau URL QR code
         $table->timestamps();
     });
 }

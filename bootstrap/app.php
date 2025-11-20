@@ -11,7 +11,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->web(append: [
+            \App\Http\Middleware\EnsureSessionActive::class,
+        ]);
+
+        // Register named middleware
+        $middleware->alias([
+            'kasir' => \App\Http\Middleware\EnsureIsKasir::class,
+            'admin' => \App\Http\Middleware\EnsureIsAdmin::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

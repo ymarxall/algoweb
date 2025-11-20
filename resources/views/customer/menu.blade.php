@@ -640,13 +640,23 @@
    
     <!-- Header -->
     <header class="header">
-        <h1>Jelajahi Menu Kami</h1>
-        <p>Pilih menu favorit Anda hari ini</p>
-        <div class="table-info">
-            <span class="table-badge">Meja <span id="tableNumber">1</span></span>
-        </div>
-        <div class="search-bar">
-            <input type="text" id="searchInput" placeholder="Cari menu atau kategori...">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+            <!-- QR Code Display -->
+            <div id="qrCodeContainer" style="background: white; padding: 1rem; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 2px solid #f0f0f0;">
+                <div id="qrCode" style="width: 120px; height: 120px; margin: 0 auto; background: #f5f5f5; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; color: #999; font-weight: 500;">
+                    Memuat QR...
+                </div>
+                <p style="text-align: center; font-size: 0.75rem; color: #999; margin-top: 0.5rem; font-weight: 600;">Scan untuk pesan</p>
+            </div>
+
+            <h1>Jelajahi Menu Kami</h1>
+            <p>Pilih menu favorit Anda hari ini</p>
+            <div class="table-info">
+                <span class="table-badge">Meja <span id="tableNumber">1</span></span>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Cari menu atau kategori...">
+            </div>
         </div>
     </header>
    
@@ -738,26 +748,46 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
-        const menuData = [
-            { id: 1, name: 'Espresso', category: 'minuman', price: 25000, image: 'https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=400', desc: 'Kopi espresso pekat dan kaya rasa' },
-            { id: 2, name: 'Cappuccino', category: 'minuman', price: 35000, image: 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=400', desc: 'Espresso dengan foam susu lembut' },
-            { id: 3, name: 'Latte', category: 'minuman', price: 38000, image: 'https://images.unsplash.com/photo-1561882468-9110e03e0f78?w=400', desc: 'Kopi susu dengan latte art cantik' },
-            { id: 4, name: 'Americano', category: 'minuman', price: 28000, image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=400', desc: 'Espresso dengan air panas' },
-            { id: 5, name: 'Nasi Goreng', category: 'makanan', price: 45000, image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400', desc: 'Nasi goreng spesial dengan telur' },
-            { id: 6, name: 'Burger', category: 'makanan', price: 55000, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400', desc: 'Burger beef dengan keju leleh' },
-            { id: 7, name: 'Pasta Carbonara', category: 'makanan', price: 58000, image: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=400', desc: 'Pasta creamy dengan bacon' },
-            { id: 8, name: 'Sandwich', category: 'makanan', price: 42000, image: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400', desc: 'Sandwich isi ayam dan sayuran' },
-            { id: 9, name: 'Cheesecake', category: 'dessert', price: 38000, image: 'https://images.unsplash.com/photo-1524351199678-941a58a3df50?w=400', desc: 'Cheesecake lembut dengan topping' },
-            { id: 10, name: 'Tiramisu', category: 'dessert', price: 42000, image: 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=400', desc: 'Tiramisu klasik Italia' },
-            { id: 11, name: 'French Fries', category: 'snack', price: 25000, image: 'https://images.unsplash.com/photo-1576107232684-1279f390859f?w=400', desc: 'Kentang goreng renyah' },
-            { id: 12, name: 'Chicken Wings', category: 'snack', price: 48000, image: 'https://images.unsplash.com/photo-1608039755401-742074f0548d?w=400', desc: 'Sayap ayam pedas manis' },
-        ];
-
+        // Ambil data menu dari database via API
+        let menuData = [];
         let cart = {};
         let currentCategory = 'all';
         let selectedPaymentMethod = null;
         let isPaymentMode = false;
+
+        // Generate QR Code
+        function generateQRCode(tableNumber) {
+            const qrContainer = document.getElementById('qrCode');
+            qrContainer.innerHTML = ''; // Clear previous QR
+            
+            const currentUrl = window.location.origin + '/meja/' + tableNumber;
+            
+            // Generate QR Code
+            new QRCode(qrContainer, {
+                text: currentUrl,
+                width: 120,
+                height: 120,
+                colorDark: '#0f1419',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        // Fetch menu data saat halaman load
+        async function loadMenuData() {
+            try {
+                const response = await fetch('/api/menus');
+                menuData = await response.json();
+                renderMenu(); // Render setelah data loaded
+            } catch (error) {
+                console.error('Error loading menu:', error);
+                // Fallback ke data kosong jika error
+                menuData = [];
+                renderMenu();
+            }
+        }
 
         // Get table number from URL
         function getTableNumber() {
@@ -773,25 +803,62 @@
 
             const items = filtered.filter(item => item.name.toLowerCase().includes(search) || item.desc.toLowerCase().includes(search));
 
-            grid.innerHTML = items.map(item => `
-                <div class="menu-card">
-                    <img src="${item.image}" alt="${item.name}" class="menu-card-img">
-                    <div class="menu-card-body">
-                        <h3 class="menu-card-title">${item.name}</h3>
-                        <p class="menu-card-desc">${item.desc}</p>
-                        <div class="menu-card-footer">
-                            <div class="menu-price">Rp ${item.price.toLocaleString('id-ID')}</div>
-                            <button class="btn-add" onclick="addToCart(${item.id})">
-                                + Tambah
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+            // Clear grid
+            grid.innerHTML = '';
 
             if (items.length === 0) {
-                grid.innerHTML = '<p class="text-center col-span-full text-gray-500">Menu tidak ditemukan</p>';
+                const emptyMsg = document.createElement('p');
+                emptyMsg.className = 'text-center col-span-full text-gray-500';
+                emptyMsg.textContent = 'Menu tidak ditemukan';
+                grid.appendChild(emptyMsg);
+                return;
             }
+
+            // Render items safely (prevent XSS)
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'menu-card';
+                
+                const img = document.createElement('img');
+                img.src = item.image || '/images/placeholder.png';
+                img.alt = item.name;
+                img.className = 'menu-card-img';
+                
+                const body = document.createElement('div');
+                body.className = 'menu-card-body';
+                
+                const title = document.createElement('h3');
+                title.className = 'menu-card-title';
+                title.textContent = item.name;
+                
+                const desc = document.createElement('p');
+                desc.className = 'menu-card-desc';
+                desc.textContent = item.desc;
+                
+                const footer = document.createElement('div');
+                footer.className = 'menu-card-footer';
+                
+                const price = document.createElement('div');
+                price.className = 'menu-price';
+                price.textContent = 'Rp ' + item.price.toLocaleString('id-ID');
+                
+                const btn = document.createElement('button');
+                btn.className = 'btn-add';
+                btn.textContent = '+ Tambah';
+                btn.onclick = () => addToCart(item.id);
+                
+                footer.appendChild(price);
+                footer.appendChild(btn);
+                
+                body.appendChild(title);
+                body.appendChild(desc);
+                body.appendChild(footer);
+                
+                card.appendChild(img);
+                card.appendChild(body);
+                
+                grid.appendChild(card);
+            });
         }
 
         document.querySelectorAll('.category-btn').forEach(btn => {
@@ -807,21 +874,60 @@
 
         function addToCart(id) {
             const item = menuData.find(m => m.id === id);
+            if (!item) return;
+            
             cart[id] = cart[id] ? { ...cart[id], qty: cart[id].qty + 1 } : { ...item, qty: 1 };
             updateCartUI();
             showToast();
+
+            // Kirim ke backend via AJAX
+            fetch('/cart/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ id: id })
+            }).catch(err => console.error('Error adding to cart:', err));
         }
 
         function updateQty(id, change) {
             if (!cart[id]) return;
-            cart[id].qty += change;
-            if (cart[id].qty <= 0) delete cart[id];
+            
+            const newQty = cart[id].qty + change;
+
+            if (newQty <= 0) {
+                removeFromCart(id); // Panggil fungsi hapus jika kuantitas jadi 0 atau kurang
+                return;
+            }
+            
+            cart[id].qty = newQty;
             updateCartUI();
+
+            // Kirim ke backend via AJAX
+            fetch('/cart/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ id: id, quantity: newQty })
+            }).catch(err => console.error('Error updating quantity:', err));
         }
 
         function removeFromCart(id) {
             delete cart[id];
             updateCartUI();
+
+            // Kirim ke backend via AJAX
+            fetch('/cart/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ id: id })
+            }).catch(err => console.error('Error removing item:', err));
         }
 
         function updateCartUI() {
@@ -838,26 +944,76 @@
             document.getElementById('summaryItems').textContent = totalItems;
             document.getElementById('summaryTotal').textContent = totalPrice.toLocaleString('id-ID');
 
-            // Cart items
+            // Cart items - render safely (prevent XSS)
             const container = document.getElementById('cartItems');
+            container.innerHTML = '';
+            
             if (totalItems === 0) {
-                container.innerHTML = '<p class="text-center text-gray-500 py-8">Keranjang kosong</p>';
+                const emptyMsg = document.createElement('p');
+                emptyMsg.className = 'text-center text-gray-500 py-8';
+                emptyMsg.textContent = 'Keranjang kosong';
+                container.appendChild(emptyMsg);
             } else {
-                container.innerHTML = items.map(item => `
-                    <div class="cart-item">
-                        <img src="${item.image}" alt="${item.name}" class="cart-item-img">
-                        <div class="flex-1">
-                            <div class="font-semibold text-sm">${item.name}</div>
-                            <div class="text-gray-600" style="font-size: 0.8125rem;">Rp ${item.price.toLocaleString('id-ID')} × ${item.qty}</div>
-                            <div class="qty-controls mt-2" style="display: inline-flex;">
-                                <button class="qty-btn" onclick="updateQty(${item.id}, -1)">−</button>
-                                <span class="qty-display">${item.qty}</span>
-                                <button class="qty-btn" onclick="updateQty(${item.id}, 1)">+</button>
-                            </div>
-                            <button class="btn-remove" onclick="removeFromCart(${item.id})" style="margin-left: 0.5rem;">Hapus</button>
-                        </div>
-                    </div>
-                `).join('');
+                items.forEach(item => {
+                    const cartItem = document.createElement('div');
+                    cartItem.className = 'cart-item';
+                    
+                    const img = document.createElement('img');
+                    img.src = item.image || '/images/placeholder.png';
+                    img.alt = item.name;
+                    img.className = 'cart-item-img';
+                    
+                    const details = document.createElement('div');
+                    details.className = 'flex-1';
+                    details.style.flex = '1';
+                    
+                    const itemName = document.createElement('div');
+                    itemName.className = 'font-semibold text-sm';
+                    itemName.textContent = item.name;
+                    
+                    const itemPrice = document.createElement('div');
+                    itemPrice.className = 'text-gray-600';
+                    itemPrice.style.fontSize = '0.8125rem';
+                    itemPrice.textContent = 'Rp ' + item.price.toLocaleString('id-ID') + ' × ' + item.qty;
+                    
+                    const qtyControls = document.createElement('div');
+                    qtyControls.className = 'qty-controls mt-2';
+                    qtyControls.style.display = 'inline-flex';
+                    
+                    const btnMinus = document.createElement('button');
+                    btnMinus.className = 'qty-btn';
+                    btnMinus.textContent = '−';
+                    btnMinus.onclick = () => updateQty(item.id, -1);
+                    
+                    const qtyDisplay = document.createElement('span');
+                    qtyDisplay.className = 'qty-display';
+                    qtyDisplay.textContent = item.qty;
+                    
+                    const btnPlus = document.createElement('button');
+                    btnPlus.className = 'qty-btn';
+                    btnPlus.textContent = '+';
+                    btnPlus.onclick = () => updateQty(item.id, 1);
+                    
+                    const btnRemove = document.createElement('button');
+                    btnRemove.className = 'btn-remove';
+                    btnRemove.textContent = 'Hapus';
+                    btnRemove.style.marginLeft = '0.5rem';
+                    btnRemove.onclick = () => removeFromCart(item.id);
+                    
+                    qtyControls.appendChild(btnMinus);
+                    qtyControls.appendChild(qtyDisplay);
+                    qtyControls.appendChild(btnPlus);
+                    
+                    details.appendChild(itemName);
+                    details.appendChild(itemPrice);
+                    details.appendChild(qtyControls);
+                    details.appendChild(btnRemove);
+                    
+                    cartItem.appendChild(img);
+                    cartItem.appendChild(details);
+                    
+                    container.appendChild(cartItem);
+                });
             }
         }
 
@@ -922,24 +1078,41 @@
             }
 
             const name = document.getElementById('customerName').value.trim();
-            const table = getTableNumber(); // dari fungsi yang sudah ada
-            const total = Object.values(cart).reduce((s, i) => s + i.price * i.qty, 0);
+            if (!name) {
+                return alert('Silakan masukkan nama Anda!');
+            }
 
-            // Langsung arahkan ke halaman tunggu dengan data
-            const params = new URLSearchParams({
-                meja: table,
-                nama: name,
-                total: total,
-                metode: selectedPaymentMethod
+            // Kirim order ke backend
+            fetch('/checkout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    customer_name: name,
+                    payment_method: selectedPaymentMethod
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Redirect ke halaman waiting dengan order ID
+                    window.location.href = data.redirect_url;
+                    
+                    // Kosongkan keranjang lokal
+                    cart = {};
+                    selectedPaymentMethod = null;
+                    isPaymentMode = false;
+                    updateCartUI();
+                } else {
+                    alert(data.error || 'Terjadi kesalahan');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat memproses pesanan');
             });
-
-            window.location.href = `/waiting?${params.toString()}`;
-
-            // Kosongkan keranjang (opsional)
-            cart = {};
-            selectedPaymentMethod = null;
-            isPaymentMode = false;
-            updateCartUI();
         }
 
         function showToast() {
@@ -956,7 +1129,10 @@
         document.addEventListener('DOMContentLoaded', () => {
             const tableNum = getTableNumber();
             document.getElementById('tableNumber').textContent = tableNum;
-            renderMenu();
+            generateQRCode(tableNum);
+            
+            // Load menu data dari database, lalu render
+            loadMenuData();
             updateCartUI();
         });
     </script>

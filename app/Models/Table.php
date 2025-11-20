@@ -10,7 +10,8 @@ class Table extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',      // INI WAJIB UNTUK TAMPIL NAMA
+        'table_number',
+        'name',
         'status',
         'qr_code',
     ];

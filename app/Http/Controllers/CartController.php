@@ -43,42 +43,43 @@ class CartController extends Controller
     public function add(Request $request)
     {
         // 1. Validasi request
+        $request->validate([
+            'id' => 'required|integer|min:1'
+        ]);
+
         $menu = Menu::find($request->id);
         if (!$menu) {
-            return response()->json(['error' => 'Menu not found'], 404);
+            return response()->json(['error' => 'Menu tidak ditemukan'], 404);
         }
 
         // 2. Ambil keranjang dari session
-        $cart = session()->get('cart', []); // Perbaikan: default array kosong
+        $cart = session()->get('cart', []);
 
         // 3. Cek jika item sudah ada, tambahkan kuantitasnya
         if (isset($cart[$menu->id])) {
-            $cart[$menu->id]['quantity']++; // Hapus anotasi [1]
+            $cart[$menu->id]['quantity']++;
         } else {
             // Jika item baru, tambahkan ke keranjang
             $cart[$menu->id] = [
                 "name" => $menu->name,
                 "quantity" => 1,
                 "price" => $menu->price,
-                "image" => $menu->image_path // (Asumsi Anda punya kolom 'image_path' di migrasi 'menus')
+                "image" => $menu->image_path
             ];
         }
 
         // 4. Simpan kembali keranjang ke session
-        session()->put('cart', $cart); // Hapus anotasi [1, 9]
+        session()->put('cart', $cart);
 
         // 5. Hitung total baru
         list($totalPrice, $itemCount) = $this->calculateCartTotals($cart);
 
         // 6. Kembalikan response JSON untuk AJAX
-        // --- PERBAIKAN DI BAWAH INI ---
-        // Kita harus mengembalikan data JSON agar JavaScript bisa memperbarui halaman.
         return response()->json([
             'message' => 'Menu berhasil ditambahkan!',
             'itemCount' => $itemCount,
             'totalPrice' => number_format($totalPrice, 0, ',', '.')
         ]);
-        // --- AKHIR PERBAIKAN ---
     }
 
     /**
@@ -86,12 +87,15 @@ class CartController extends Controller
      */
     public function update(Request $request)
     {
-        if ($request->id && $request->quantity && $request->quantity > 0) { // Tambah validasi quantity > 0
-            $cart = session()->get('cart', []); // Default array
-            if (isset($cart[$request->id])) {
-                $cart[$request->id]["quantity"] = $request->quantity;
-                session()->put('cart', $cart); // Hapus anotasi [9, 12, 13]
-            }
+        $request->validate([
+            'id' => 'required|integer|min:1',
+            'quantity' => 'required|integer|min:1|max:999'
+        ]);
+
+        $cart = session()->get('cart', []);
+        if (isset($cart[$request->id])) {
+            $cart[$request->id]["quantity"] = $request->quantity;
+            session()->put('cart', $cart);
 
             list($totalPrice, $itemCount) = $this->calculateCartTotals($cart);
 
@@ -102,7 +106,7 @@ class CartController extends Controller
             ]);
         }
 
-        return response()->json(['error' => 'Invalid request'], 400); // Tambah error handling
+        return response()->json(['error' => 'Item tidak ditemukan di keranjang'], 404);
     }
 
     /**
@@ -110,12 +114,14 @@ class CartController extends Controller
      */
     public function remove(Request $request)
     {
-        if ($request->id) {
-            $cart = session()->get('cart', []); // Default array
-            if (isset($cart[$request->id])) {
-                unset($cart[$request->id]); // Hapus item
-                session()->put('cart', $cart); // Hapus anotasi [1, 9]
-            }
+        $request->validate([
+            'id' => 'required|integer|min:1'
+        ]);
+
+        $cart = session()->get('cart', []);
+        if (isset($cart[$request->id])) {
+            unset($cart[$request->id]);
+            session()->put('cart', $cart);
 
             list($totalPrice, $itemCount) = $this->calculateCartTotals($cart);
 
@@ -126,6 +132,6 @@ class CartController extends Controller
             ]);
         }
 
-        return response()->json(['error' => 'Invalid request'], 400); // Tambah error handling
+        return response()->json(['error' => 'Item tidak ditemukan'], 404);
     }
 }

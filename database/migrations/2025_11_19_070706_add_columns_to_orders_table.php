@@ -15,9 +15,7 @@ return new class extends Migration
         $table->string('customer_name')->after('table_id');
         $table->string('payment_method')->after('customer_name'); // ovo, gopay, cash, dll
         $table->integer('estimated_minutes')->nullable()->after('payment_method'); // estimasi dalam menit
-        $table->enum('status', ['pending', 'preparing', 'ready', 'completed', 'cancelled'])
-              ->default('pending')->change(); // perlu package doctrine/dbal kalau ganti enum
-        $table->timestamp('completed_at')->nullable()->after('status');
+        $table->timestamp('completed_at')->nullable()->after('estimated_minutes');
     });
 }
 

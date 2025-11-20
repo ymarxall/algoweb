@@ -18,6 +18,10 @@ return new class extends Migration
         $table->integer('quantity');
         $table->decimal('price', 10, 2); // Harga per item pada saat pembelian
         $table->timestamps();
+        
+        // Add indexes for better query performance
+        $table->index('order_id');
+        $table->index('menu_id');
     });
 }
     /**
